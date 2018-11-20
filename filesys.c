@@ -158,7 +158,7 @@ MyFILE * myfopen(char * fileName, const char * mode){
             break;
         }else if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
             filePos = i;
-            fileFound = 1;
+            fileFound = TRUE;
             break;
         }
     }
