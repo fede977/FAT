@@ -2,13 +2,6 @@
 #include <stdlib.h>
 #include "filesys.h"
 
-void D(){
-    
-    format();
-    writedisk("virtualdiskD3_D1");
-
-}
-
 void C(){
     format();
     diskblock_t block;
@@ -39,21 +32,7 @@ void C(){
     }
 }
 
-void B(){
-    char * path = "/myfirstdir/myseconddir/mythirddir";
-
-    mymkdir(path);
-    writedisk("virtualdiskB3_B1a");
-
-    path = "/myfirstdir/myseconddir/testfile.txt";
-    mymkdir(path);
-
-    writedisk("virtualdiskB3_B1b");
-}
-
 int main(int argc, char const *argv[]){
-    D();
     C();
-    B();
     return 0;
 }

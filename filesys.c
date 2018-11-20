@@ -246,6 +246,77 @@ void myfclose(MyFILE * stream){
     free(stream);
 }
 
+
+void mymkdir(const char * path){
+    char pathString[strlen(path)+1];
+    strcpy(pathString, path);
+    char * str = pathString;
+    char  * token;
+    int blockNum = 3;
+
+
+    while((token = strtok_r(str, "/",&str))){
+        diskblock_t block;
+        block = virtualDisk[blockNum];
+        block.dir.nextEntry = 0;
+        block.dir.isdir = 1;
+        int freeDirSpace;
+        for(int i = 0; i<DIRENTRYCOUNT; i++){
+            if(block.dir.entrylist[i].unused){
+                freeDirSpace = i;
+                break;
+            }
+        }
+        strcpy(block.dir.entrylist[freeDirSpace].name, token);
+        block.dir.entrylist[freeDirSpace].unused = 0;
+
+        int freeFat = allocFAT();
+
+        block.dir.entrylist[freeDirSpace].firstblock = freeFat;
+
+        copyFAT();
+
+        writeblock(&block, blockNum);
+
+        blockNum = freeFat;
+    }
+}
+
+char** mylistdir(const char*path){
+    diskblock_t block;
+    char pathString[strlen(path)+1];
+    strcpy(pathString, path);
+    char * rest = pathString;
+    char * token;
+    char targName;
+    int blockNum = 3;
+    int objective, foundDir;
+
+    while((token = strtok_r(rest, "/", &rest))){
+        block = virtualDisk[blockNum];
+        for(int i = 0; i<DIRENTRYCOUNT; i++){
+            if(strcmp(block.dir.entrylist[i].name, token)== 0){
+                foundDir = 1;
+                objective = i;
+                break;
+            }
+        }
+
+        if(foundDir){
+            targName = block.dir.entrylist[objective].name;
+            continue;
+        }else{
+            break;
+        }
+    
+        blockNum = block.dir.entrylist[objective].firstblock;
+    }
+
+    return targName;
+}
+
+
+
 /* use this for testing
  */
 

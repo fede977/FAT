@@ -107,6 +107,8 @@ MyFILE * myfopen(char * fileName, const char * mode);
 void myfputc(int b, MyFILE * stream);
 int myfgetc(MyFILE * stream);
 void myfclose(MyFILE * stream);
+void mymkdir(const char * path);
+char**mylistdir(const char * path);
 
 
 #endif
