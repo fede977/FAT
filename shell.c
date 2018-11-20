@@ -21,10 +21,22 @@ void C(){
     }
 
     myfputc(EOF,File);
-    
+
     myfclose(File);
 
     writedisk("virtualdiskC3_C1");
+
+    char fileChar;
+    File = myfopen("testfile.txt", "w");
+    FILE * returningFile = fopen("testfileC3_C1_copy.txt", "w");
+
+    while(fileChar != EOF){
+        fileChar = myfgetc(File);
+        if(fileChar!= EOF){
+            fprintf(returningFile, "%c", fileChar);
+            printf("%c", fileChar);
+        }
+    }
 }
 
 int main(int argc, char const *argv[]){

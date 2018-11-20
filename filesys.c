@@ -226,6 +226,21 @@ void myfputc(int b, MyFILE * stream){
 
 }
 
+int myfgetc(MyFILE * stream){
+    char fileChar;
+
+    if(stream->pos == BLOCKSIZE){
+        stream->pos = 0;
+        stream->blockno = FAT[stream->blockno];
+        return fileChar;
+    }
+
+    stream->buffer = virtualDisk[stream->blockno];
+    fileChar = stream->buffer.data[stream->pos];
+    stream->pos += 1;
+    return fileChar;
+}
+
 void myfclose(MyFILE * stream){
     writeblock(&stream->buffer, stream -> blockno);
     free(stream);
