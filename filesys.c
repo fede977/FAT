@@ -151,37 +151,75 @@ MyFILE * myfopen(char * fileName, const char * mode){
     block = virtualDisk[3];
     MyFILE * File = malloc(sizeof(MyFILE));
     strcpy(File->mode,mode);
-    int filePos = allocFAT();
-    int i;
+    int filePos;
+    int i, fileFound = 0;
     for(i = 0; i<DIRENTRYCOUNT; i++){
         if(block.dir.entrylist[i].unused){
             break;
+        }else if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
+            filePos = i;
+            fileFound = 1;
+            break;
         }
     }
-    File->blockno = filePos;
-    block.dir.entrylist[i].firstblock = filePos;
 
-    copyFAT();
+    if(fileFound){
+        File ->blockno = block.dir.entrylist[filePos].firstblock;
+        File -> pos = 0;
 
-    strcpy(block.dir.entrylist[i].name, fileName);
-    block.dir.entrylist[i].unused = 0;
-    writeblock(&block, 3);
+    }else{
+        for(i = 0; i<DIRENTRYCOUNT; i++){
+            if(block.dir.entrylist[i].unused){
+                break;
+            }
+        }
+        filePos = allocFAT();
+
+        File->blockno = filePos;
+        block.dir.entrylist[i].firstblock = filePos;
+
+        copyFAT();
+
+        strcpy(block.dir.entrylist[i].name, fileName);
+        block.dir.entrylist[i].unused = 0;
+        writeblock(&block, 3);
+    }
     return(File);
 }
 
 void myfputc(int b, MyFILE * stream){
 
+    int freeSpace, newPos;
+    int position = stream->blockno;
+
+    while(!freeSpace){
+        if(FAT[position] == ENDOFCHAIN){
+            freeSpace = 1;
+        }else{
+            position = FAT[position];
+        }
+    }
+    stream->buffer = virtualDisk[position];
+
+    for(int i= 0; i<BLOCKSIZE; i++){
+        if(stream->buffer.data[i] == '\0'){
+            stream->pos = i;
+            break;
+        }
+    }
+
     stream -> buffer.data[stream->pos] = b;
+    writeblock(&stream->buffer, position);
     stream -> pos += 1;
-    int position;
+
     if(stream->pos == BLOCKSIZE){
-        position = allocFAT();
-        FAT[stream->blockno] = position;
+        stream->pos = 0;
+        newPos = allocFAT();
+        FAT[position] = newPos;
         copyFAT();
         writeblock(&stream->buffer, stream -> blockno);
-        stream->blockno = position;
-        stream->pos = 0;
-        for(int i = 0; i<BLOCKSIZE; i++){
+        stream->blockno = newPos;
+        for(int i = 0; i<MAXBLOCKS; i++){
             stream->buffer.data[i] = '\0';
         }
     }

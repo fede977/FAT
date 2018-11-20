@@ -10,15 +10,18 @@ void D(){
 }
 
 void C(){
+    format();
     diskblock_t block;
     MyFILE * File = myfopen("testfile.txt", "w");
 
     char * alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXWZ";
 
-    for(int i = 0; i<4*BLOCKSIZE; i++){
+    for(int i = 0; i<(4*BLOCKSIZE); i++){
         myfputc(alphabet[i%strlen(alphabet)], File);
     }
 
+    myfputc(EOF,File);
+    
     myfclose(File);
 
     writedisk("virtualdiskC3_C1");
