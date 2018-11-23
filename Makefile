@@ -1,4 +1,4 @@
 .PHONY: shell
 
-shell: filesys.c shell.c
-	gcc shell.c filesys.c -o shell
+shell:
+	gcc filesys.c shell.c -o shell

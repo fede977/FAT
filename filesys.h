@@ -26,7 +26,9 @@
 
 #define UNUSED        -1
 #define ENDOFCHAIN     0
+#ifndef TRUE
 #define EOF           -1
+#endif
 
 
 typedef unsigned char Byte ;
@@ -107,6 +109,9 @@ MyFILE * myfopen(char * fileName, const char * mode);
 void myfputc(int b, MyFILE * stream);
 void mymkdir(const char * path);
 
+int myfgetc(MyFILE * stream);
+void myfclose(MyFILE * stream);
+char * mylistdir(const char * path);
 
 
 #endif

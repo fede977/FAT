@@ -23,22 +23,22 @@ fatentry_t   currentDirIndex         = 0 ;
 
 void writedisk ( const char * filename )
 {
-   printf ( "writedisk> virtualdisk[0] = %s\n", virtualDisk[0].data ) ;
-   FILE * dest = fopen( filename, "w" ) ;
-   if ( fwrite ( virtualDisk, sizeof(virtualDisk), 1, dest ) < 0 )
-      fprintf ( stderr, "write virtual disk to disk failed\n" ) ;
-   //write( dest, virtualDisk, sizeof(virtualDisk) ) ;
-   fclose(dest) ;
-   
+	printf ( "writedisk> virtualdisk[0] = %s\n", virtualDisk[0].data ) ;
+	FILE * dest = fopen( filename, "w" ) ;
+	if ( fwrite ( virtualDisk, sizeof(virtualDisk), 1, dest ) < 0 )
+		fprintf ( stderr, "write virtual disk to disk failed\n" ) ;
+	//write( dest, virtualDisk, sizeof(virtualDisk) ) ;
+	fclose(dest) ;
+
 }
 
 void readdisk ( const char * filename )
 {
-   FILE * dest = fopen( filename, "r" ) ;
-   if ( fread ( virtualDisk, sizeof(virtualDisk), 1, dest ) < 0 )
-      fprintf ( stderr, "write virtual disk to disk failed\n" ) ;
-   //write( dest, virtualDisk, sizeof(virtualDisk) ) ;
-      fclose(dest) ;
+	FILE * dest = fopen( filename, "r" ) ;
+	if ( fread ( virtualDisk, sizeof(virtualDisk), 1, dest ) < 0 )
+		fprintf ( stderr, "write virtual disk to disk failed\n" ) ;
+	//write( dest, virtualDisk, sizeof(virtualDisk) ) ;
+	fclose(dest) ;
 }
 
 
@@ -48,9 +48,9 @@ void readdisk ( const char * filename )
 
 void writeblock ( diskblock_t * block, int block_address )
 {
-   //printf ( "writeblock> block %d = %s\n", block_address, block->data ) ;
-   memmove ( virtualDisk[block_address].data, block->data, BLOCKSIZE ) ;
-   //printf ( "writeblock> virtualdisk[%d] = %s / %d\n", block_address, virtualDisk[block_address].data, (int)virtualDisk[block_address].data ) ;
+	//printf ( "writeblock> block %d = %s\n", block_address, block->data ) ;
+	memmove ( virtualDisk[block_address].data, block->data, BLOCKSIZE ) ;
+	//printf ( "writeblock> virtualdisk[%d] = %s / %d\n", block_address, virtualDisk[block_address].data, (int)virtualDisk[block_address].data ) ;
 }
 
 
@@ -70,282 +70,296 @@ void writeblock ( diskblock_t * block, int block_address )
  *              - each block can hold (BLOCKSIZE / sizeof(fatentry_t)) fat entries
  */
 void copyFAT(){
-    int fatblocksneeded = (MAXBLOCKS/FATENTRYCOUNT);
+	int fatblocksneeded = (MAXBLOCKS/FATENTRYCOUNT);
 
-    for(int i = 0; i<fatblocksneeded; i++){
-        diskblock_t block;
-        for(int j =0; j<FATENTRYCOUNT; j++){
-            block.fat[j] = FAT[j+i*FATENTRYCOUNT];
-        }
-        writeblock(&block, i+1);
-    }
+	for(int i = 0; i<fatblocksneeded; i++){
+		diskblock_t block;
+		for(int j =0; j<FATENTRYCOUNT; j++){
+			block.fat[j] = FAT[j+i*FATENTRYCOUNT];
+		}
+		writeblock(&block, i+1);
+	}
 }
 
 /* implement format()
- */
+*/
 void format ( )
 {
-   diskblock_t block ;
-   direntry_t  rootDir ;
+	diskblock_t block ;
+	direntry_t  rootDir ;
 
-   int         pos             = 0 ;
-   int         fatentry        = 0 ;
-   int         fatblocksneeded =  (MAXBLOCKS / FATENTRYCOUNT ) ;
+	int         pos             = 0 ;
+	int         fatentry        = 0 ;
+	int         fatblocksneeded =  (MAXBLOCKS / FATENTRYCOUNT ) ;
 
-   /* prepare block 0 : fill it with '\0',
-    * use strcpy() to copy some text to it for test purposes
-	* write block 0 to virtual disk
-	*/
-    for(int i = 0; i<BLOCKSIZE; i++){
-        block.data[i] = '\0';
-    }
+	/* prepare block 0 : fill it with '\0',
+	 * use strcpy() to copy some text to it for test purposes
+	 * write block 0 to virtual disk
+	 */
+	for(int i = 0; i<BLOCKSIZE; i++){
+		block.data[i] = '\0';
+	}
 
 	/* prepare FAT table
 	 * write FAT blocks to virtual disk
 	 */
-    strcpy(block.data, "CS3026 OPERATING SYSTEM ASSESSMENT");
-    writeblock(&block, 0);
+	strcpy(block.data, "CS3026 OPERATING SYSTEM ASSESSMENT");
+	writeblock(&block, 0);
 
-	 /* prepare root directory
-	  * write root directory block to virtual disk
-	  */
-    for(int j = 0; j<=FATENTRYCOUNT*fatblocksneeded; j++){
-        FAT[j] = UNUSED;
-    }
+	/* prepare root directory
+	 * write root directory block to virtual disk
+	 */
+	for(int j = 0; j<=FATENTRYCOUNT*fatblocksneeded; j++){
+		FAT[j] = UNUSED;
+	}
 
-    FAT[0] = ENDOFCHAIN;
-    FAT[1] = 2;
-    FAT[2] = ENDOFCHAIN;
-    copyFAT();
-    
-    for(int i = 0; i<BLOCKSIZE; i++){
-        block.data[i] = '\0';
-    }
+	FAT[0] = ENDOFCHAIN;
+	FAT[1] = 2;
+	FAT[2] = ENDOFCHAIN;
+	copyFAT();
 
-    block.dir.isdir = 1;
-    block.dir.nextEntry = 0;
+	for(int i = 0; i<BLOCKSIZE; i++){
+		block.data[i] = '\0';
+	}
 
-    writeblock(&block, fatblocksneeded+1);
-    
-    FAT[3] = ENDOFCHAIN;
+	block.dir.isdir = 1;
+	block.dir.nextEntry = 0;
 
-    copyFAT();
-    rootDirIndex = fatblocksneeded+1;
+	writeblock(&block, fatblocksneeded+1);
+
+	FAT[3] = ENDOFCHAIN;
+
+	copyFAT();
+	rootDirIndex = fatblocksneeded+1;
 }
 
 int allocFAT(){
-    for(int i = 0; i<MAXBLOCKS; i++){
-        if(FAT[i] == UNUSED){
-            FAT[i] = ENDOFCHAIN;
-            copyFAT();
-            return i;
-            break;
-        }
-    }
+	for(int i = 0; i<MAXBLOCKS; i++){
+		if(FAT[i] == UNUSED){
+			FAT[i] = ENDOFCHAIN;
+			copyFAT();
+			return i;
+			break;
+		}
+	}
 }
 
 int findBlock(diskblock_t block){
-    for(int i = 0; i<DIRENTRYCOUNT; i++){
-        if(block.dir.entrylist[i].unused){
-            return i;
-            break;
-        }
-    }
+	for(int i = 0; i<DIRENTRYCOUNT; i++){
+		if(block.dir.entrylist[i].unused){
+			return i;
+			break;
+		}
+	}
 }
 
 int findFile(char * fileName, diskblock_t block) {
-    for(int i = 0; i<DIRENTRYCOUNT; i++){
-        if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
-            return block.dir.entrylist[i].firstblock;
-        }
-    }
+	for(int i = 0; i<DIRENTRYCOUNT; i++){
+		if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
+			return block.dir.entrylist[i].firstblock;
+		}
+	}
 
 }
 
 
-diskblock_t findDir(char str[]){
-    int blockNum = 3;
-    char  * token;
-    while((token = strtok_r(str, "/",&str))){
-        diskblock_t block;
-        block = virtualDisk[blockNum];
-        block.dir.nextEntry = 0;
-        block.dir.isdir = 1;
-        int FoundFile = findFile(token, block);
-        if(!FoundFile){
-            printf("File not Found");
-        }
-        blockNum = block.dir.entrylist[FoundFile].firstblock;
-    }
-    return virtualDisk[blockNum];
+diskblock_t findDir(const char * otherstr){
+	int blockNum = 3;
+	char * token = "", * ctx = "";
+
+	char * str = malloc(strlen(otherstr)+1);
+
+	strcpy(str, otherstr);
+
+	printf("strtok_r %s", str);
+	token = strtok_r(str, "/", &ctx);
+	printf("strtok_r %s", str);
+
+	while(token){
+		printf("Token is: %s", token);
+		token = strtok_r(NULL, "/", &ctx);
+		continue;
+		diskblock_t block;
+		block = virtualDisk[blockNum];
+		block.dir.nextEntry = 0;
+		block.dir.isdir = 1;
+		int FoundFile = findFile(token, block);
+		if(!FoundFile){
+			printf("File not Found");
+			break;
+		}
+		blockNum = block.dir.entrylist[FoundFile].firstblock;
+
+	}
+	return virtualDisk[blockNum];
 }
 
 MyFILE * myfopen(char * fileName, const char * mode){
-    diskblock_t block;
+	diskblock_t block;
 
-    block = findDir(fileName);
-    MyFILE * File = malloc(sizeof(MyFILE));
-    strcpy(File->mode,mode);
-    int filePos;
-   
-    int i = findBlock(block), fileBlockId = findFile(fileName, block);
-   
+	block = findDir(fileName);
+	MyFILE * File = malloc(sizeof(MyFILE));
+	strcpy(File->mode,mode);
+	int filePos;
 
-    if(fileBlockId){
-        File ->blockno = fileBlockId;
-        File -> pos = 0;
-    }else{
-        int j = findBlock(block);
+	int i = findBlock(block), fileBlockId = findFile(fileName, block);
 
-        filePos = allocFAT();
 
-        File->blockno = filePos;
-        block.dir.entrylist[j].firstblock = filePos;
+	if(fileBlockId){
+		File ->blockno = fileBlockId;
+		File -> pos = 0;
+	}else{
+		int j = findBlock(block);
 
-        copyFAT();
+		filePos = allocFAT();
 
-        block.dir.entrylist[j].unused = 0;
-        strcpy(block.dir.entrylist[j].name, fileName);
-        writeblock(&block, 3);
-    }
-    return(File);
+		File->blockno = filePos;
+		block.dir.entrylist[j].firstblock = filePos;
+
+		copyFAT();
+
+		block.dir.entrylist[j].unused = 0;
+		strcpy(block.dir.entrylist[j].name, fileName);
+		writeblock(&block, 3);
+	}
+	return(File);
 }
 
 void myfputc(int b, MyFILE * stream){
 
-    int newPos;
-    int position = stream->blockno;
+	int newPos;
+	int position = stream->blockno;
 
-    while(TRUE){
-        if(FAT[position] == ENDOFCHAIN){
-            break;
-        }else{
-            position = FAT[position];
-        }
-    }
+	while(TRUE){
+		if(FAT[position] == ENDOFCHAIN){
+			break;
+		}else{
+			position = FAT[position];
+		}
+	}
 
-    stream->buffer = virtualDisk[position];
+	stream->buffer = virtualDisk[position];
 
-    for(int i= 0; i<BLOCKSIZE; i++){
-        if(stream->buffer.data[i] == '\0'){
-            stream->pos = i;
-            break;
-        }
-    }
+	for(int i= 0; i<BLOCKSIZE; i++){
+		if(stream->buffer.data[i] == '\0'){
+			stream->pos = i;
+			break;
+		}
+	}
 
-    stream -> buffer.data[stream->pos] = b;
-    writeblock(&stream->buffer, position);
-    stream -> pos += 1;
+	stream -> buffer.data[stream->pos] = b;
+	writeblock(&stream->buffer, position);
+	stream -> pos += 1;
 
-    if(stream->pos == BLOCKSIZE){
-        stream->pos = 0;
-        newPos = allocFAT();
-        FAT[position] = newPos;
-        copyFAT();
-        /* writeblock(&stream->buffer, stream -> blockno);
-        stream->blockno = newPos; */
-    }
-    for(int i = 0; i<MAXBLOCKS; i++){
-        stream->buffer.data[i] = '\0';
-    }
+	if(stream->pos == BLOCKSIZE){
+		stream->pos = 0;
+		newPos = allocFAT();
+		FAT[position] = newPos;
+		copyFAT();
+		/* writeblock(&stream->buffer, stream -> blockno);
+			 stream->blockno = newPos; */
+	}
+	for(int i = 0; i<MAXBLOCKS; i++){
+		stream->buffer.data[i] = '\0';
+	}
 
 }
 
 int myfgetc(MyFILE * stream){
-    char fileChar;
+	char fileChar;
 
-    if(stream->pos == BLOCKSIZE){
-        stream->pos = 0;
-        stream->blockno = FAT[stream->blockno];
-        fileChar = stream->buffer.data[stream->pos];
-        return fileChar;
-    }else{
+	if(stream->pos == BLOCKSIZE){
+		stream->pos = 0;
+		stream->blockno = FAT[stream->blockno];
+		fileChar = stream->buffer.data[stream->pos];
+		return fileChar;
+	}else{
 
-    stream->buffer = virtualDisk[stream->blockno];
-    fileChar = stream->buffer.data[stream->pos];
-    stream->pos += 1;
-    
-    return fileChar;
-    }
+		stream->buffer = virtualDisk[stream->blockno];
+		fileChar = stream->buffer.data[stream->pos];
+		stream->pos += 1;
+
+		return fileChar;
+	}
 }
 
 void myfclose(MyFILE * stream){
-    writeblock(&stream->buffer, stream -> blockno);
-    free(stream);
+	writeblock(&stream->buffer, stream -> blockno);
+	free(stream);
 }
 
 
 void mymkdir(const char * path){
-    char pathString[strlen(path)+1];
-    strcpy(pathString, path);
-    char * str = pathString;
-    char  * token;
-    int blockNum = 3;
-    
-    while((token = strtok_r(str, "/",&str))){
-        diskblock_t block;
-        block = virtualDisk[blockNum];
-        block.dir.nextEntry = 0;
-        block.dir.isdir = 1;
-        
-        int freeDirSpace = findBlock(block);
-        
-        strcpy(block.dir.entrylist[freeDirSpace].name, token);
-        block.dir.entrylist[freeDirSpace].unused = 0;
+	char pathString[strlen(path)+1];
+	strcpy(pathString, path);
+	char * str = pathString;
+	char  * token;
+	int blockNum = 3;
 
-        int freeFat = allocFAT();
+	while((token = strtok_r(str, "/",&str))){
+		diskblock_t block;
+		block = virtualDisk[blockNum];
+		block.dir.nextEntry = 0;
+		block.dir.isdir = 1;
 
-        block.dir.entrylist[freeDirSpace].firstblock = freeFat;
+		int freeDirSpace = findBlock(block);
 
-        copyFAT();
+		strcpy(block.dir.entrylist[freeDirSpace].name, token);
+		block.dir.entrylist[freeDirSpace].unused = 0;
 
-        writeblock(&block, blockNum);
+		int freeFat = allocFAT();
 
-        blockNum = freeFat;
-    }
+		block.dir.entrylist[freeDirSpace].firstblock = freeFat;
+
+		copyFAT();
+
+		writeblock(&block, blockNum);
+
+		blockNum = freeFat;
+	}
 }
 
-char** mylistdir(const char*path){
-    char pathString[strlen(path)+1];
-    strcpy(pathString, path);
-    char * rest = pathString;
-    char * token;
-    char targName;
-    int blockNum = 3;
-    int objective, foundDir = 0;
+char * mylistdir(const char*path){
+	char pathString[strlen(path)+1];
+	strcpy(pathString, path);
+	char * rest = pathString;
+	char * token;
+	char * targName;
+	int blockNum = 3;
+	int objective, foundDir = 0;
 
-    while((token = strtok_r(rest, "/", &rest))){
-        diskblock_t block;
-        block = virtualDisk[blockNum];
-        
-        for(int i = 0; i<DIRENTRYCOUNT; i++){
-            if(strcmp(block.dir.entrylist[i].name, token)== 0){
-                foundDir = 1;
-                objective = i;
-                break;
-            }
-        }
+	while((token = strtok_r(rest, "/", &rest))){
+		diskblock_t block;
+		block = virtualDisk[blockNum];
 
-        if(foundDir){
-            targName = block.dir.entrylist[objective].name;
-            continue;
-        }else{
-            break;
-        }
-    
-        blockNum = block.dir.entrylist[objective].firstblock;
-    }
+		for(int i = 0; i<DIRENTRYCOUNT; i++){
+			if(strcmp(block.dir.entrylist[i].name, token)== 0){
+				foundDir = 1;
+				objective = i;
+				break;
+			}
+		}
 
-    return targName;
+		if(foundDir){
+			targName = block.dir.entrylist[objective].name;
+			continue;
+		}else{
+			break;
+		}
+
+		blockNum = block.dir.entrylist[objective].firstblock;
+	}
+
+	return targName;
 }
 
 
 
 /* use this for testing
- */
+*/
 
 void printBlock ( int blockIndex )
 {
-   printf ( "virtualdisk[%d] = %s\n", blockIndex, virtualDisk[blockIndex].data ) ;
+	printf ( "virtualdisk[%d] = %s\n", blockIndex, virtualDisk[blockIndex].data ) ;
 }
 

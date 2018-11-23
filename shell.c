@@ -1,64 +1,65 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "filesys.h"
 
 void D(){
-    
-    format();
-    writedisk("virtualdiskD3_D1");
+
+	format();
+	writedisk("virtualdiskD3_D1");
 
 }
 
 void C(){
-    diskblock_t block;
-    MyFILE * File = myfopen("testfile.txt", "w");
+	diskblock_t block;
+	MyFILE * File = myfopen("testfile.txt", "w");
 
-    char * alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXWZ";
+	char * alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXWZ";
 
-    for(int i = 0; i<(4*BLOCKSIZE); i++){
-        myfputc(alphabet[i%strlen(alphabet)], File);
-    }
+	for(int i = 0; i<(4*BLOCKSIZE); i++){
+		myfputc(alphabet[i%strlen(alphabet)], File);
+	}
 
-    myfputc(EOF,File);
+	myfputc(EOF,File);
 
-    myfclose(File);
+	myfclose(File);
 
-    writedisk("virtualdiskC3_C1");
+	writedisk("virtualdiskC3_C1");
 
-    char fileChar = '\0';
-    File = myfopen("testfile.txt", "w");
-    FILE * returningFile = fopen("testfileC3_C1_copy.txt", "w");
+	char fileChar = '\0';
+	File = myfopen("testfile.txt", "w");
+	FILE * returningFile = fopen("testfileC3_C1_copy.txt", "w");
 
-    while(fileChar != EOF){
-        fileChar = myfgetc(File);
-        if (fileChar != EOF){
-            fprintf(returningFile, "%c", fileChar);
-            printf("%c", fileChar);
-            
-        }
-    }
-    fclose(returningFile);
+	while(fileChar != EOF){
+		fileChar = myfgetc(File);
+		if (fileChar != EOF){
+			fprintf(returningFile, "%c", fileChar);
+			printf("%c", fileChar);
+
+		}
+	}
+	fclose(returningFile);
 }
 
 void B(){
-    char * path = "/myfirstdir/myseconddir/mythirddir";
+	char * path = "/myfirstdir/myseconddir/mythirddir";
 
-    mymkdir(path);
-    writedisk("virtualdiskB3_B1a");
-    
+	mymkdir(path);
+	writedisk("virtualdiskB3_B1a");
 
-    path = "/myfirstdir/myseconddir";
-    mymkdir(path);
-    MyFILE * File = myfopen("/myfirstdir/myseconddir/testfile.txt", "w");
-    myfclose(File);
-    mylistdir("/myfirstdir/myseconddir/");
-    
-    writedisk("virtualdiskB3_B1b");
+
+	path = "/myfirstdir/myseconddir";
+	mymkdir(path);
+	MyFILE * File = myfopen("/myfirstdir/myseconddir/testfile.txt", "w");
+	myfclose(File);
+	mylistdir("/myfirstdir/myseconddir/");
+
+	writedisk("virtualdiskB3_B1b");
 }
 
 int main(int argc, char const *argv[]){
-    D();
-    C();
-    B();
-    return 0;
+	D();
+	C();
+	B();
+	return 0;
 }
