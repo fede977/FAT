@@ -116,20 +116,20 @@ void format ( )
     FAT[0] = ENDOFCHAIN;
     FAT[1] = 2;
     FAT[2] = ENDOFCHAIN;
-    FAT[3] = ENDOFCHAIN;
-
     copyFAT();
     
-
     for(int i = 0; i<BLOCKSIZE; i++){
         block.data[i] = '\0';
     }
 
-    block.dir.isdir = 0;
-    block.dir.nextEntry = 1;
+    block.dir.isdir = 1;
+    block.dir.nextEntry = 0;
 
     writeblock(&block, fatblocksneeded+1);
+    
+    FAT[3] = ENDOFCHAIN;
 
+    copyFAT();
     rootDirIndex = fatblocksneeded+1;
 }
 
@@ -144,6 +144,26 @@ int allocFAT(){
     }
 }
 
+int findBlock(){
+    diskblock_t block;
+
+    for(int i = 0; i<DIRENTRYCOUNT; i++){
+        if(block.dir.entrylist[i].unused){
+            return i;
+            break;
+        }
+    }
+}
+
+int findFile(char * fileName, diskblock_t block) {
+
+    for(int i = 0; i<DIRENTRYCOUNT; i++){
+        if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
+            return block.dir.entrylist[i].firstblock;
+        }
+    }
+
+}
 
 MyFILE * myfopen(char * fileName, const char * mode){
     diskblock_t block;
@@ -152,36 +172,24 @@ MyFILE * myfopen(char * fileName, const char * mode){
     MyFILE * File = malloc(sizeof(MyFILE));
     strcpy(File->mode,mode);
     int filePos;
-    int i, fileFound = 0;
-    for(i = 0; i<DIRENTRYCOUNT; i++){
-        if(block.dir.entrylist[i].unused){
-            break;
-        }else if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
-            filePos = i;
-            fileFound = TRUE;
-            break;
-        }
-    }
+    int i = findBlock(), fileBlockId = findFile(fileName, block);
+   
 
-    if(fileFound){
-        File ->blockno = block.dir.entrylist[filePos].firstblock;
+    if(fileBlockId){
+        File ->blockno = fileBlockId;
         File -> pos = 0;
-
     }else{
-        for(i = 0; i<DIRENTRYCOUNT; i++){
-            if(block.dir.entrylist[i].unused){
-                break;
-            }
-        }
+        int j = findBlock();
+
         filePos = allocFAT();
 
         File->blockno = filePos;
-        block.dir.entrylist[i].firstblock = filePos;
+        block.dir.entrylist[j].firstblock = filePos;
 
         copyFAT();
 
-        strcpy(block.dir.entrylist[i].name, fileName);
-        block.dir.entrylist[i].unused = 0;
+        block.dir.entrylist[j].unused = 0;
+        strcpy(block.dir.entrylist[j].name, fileName);
         writeblock(&block, 3);
     }
     return(File);
@@ -189,16 +197,17 @@ MyFILE * myfopen(char * fileName, const char * mode){
 
 void myfputc(int b, MyFILE * stream){
 
-    int freeSpace, newPos;
+    int newPos;
     int position = stream->blockno;
 
-    while(!freeSpace){
+    while(TRUE){
         if(FAT[position] == ENDOFCHAIN){
-            freeSpace = 1;
+            break;
         }else{
             position = FAT[position];
         }
     }
+
     stream->buffer = virtualDisk[position];
 
     for(int i= 0; i<BLOCKSIZE; i++){
@@ -217,11 +226,11 @@ void myfputc(int b, MyFILE * stream){
         newPos = allocFAT();
         FAT[position] = newPos;
         copyFAT();
-        writeblock(&stream->buffer, stream -> blockno);
-        stream->blockno = newPos;
-        for(int i = 0; i<MAXBLOCKS; i++){
-            stream->buffer.data[i] = '\0';
-        }
+        /* writeblock(&stream->buffer, stream -> blockno);
+        stream->blockno = newPos; */
+    }
+    for(int i = 0; i<MAXBLOCKS; i++){
+        stream->buffer.data[i] = '\0';
     }
 
 }
@@ -232,13 +241,16 @@ int myfgetc(MyFILE * stream){
     if(stream->pos == BLOCKSIZE){
         stream->pos = 0;
         stream->blockno = FAT[stream->blockno];
+        fileChar = stream->buffer.data[stream->pos];
         return fileChar;
-    }
+    }else{
 
     stream->buffer = virtualDisk[stream->blockno];
     fileChar = stream->buffer.data[stream->pos];
     stream->pos += 1;
+    
     return fileChar;
+    }
 }
 
 void myfclose(MyFILE * stream){
@@ -260,13 +272,14 @@ void mymkdir(const char * path){
         block = virtualDisk[blockNum];
         block.dir.nextEntry = 0;
         block.dir.isdir = 1;
-        int freeDirSpace;
-        for(int i = 0; i<DIRENTRYCOUNT; i++){
-            if(block.dir.entrylist[i].unused){
-                freeDirSpace = i;
-                break;
+        if (blockNum > 3){
+            for(int i = 0; i < DIRENTRYCOUNT; i++){ 
+                block.dir.entrylist[i].unused = 1;
             }
         }
+        
+        int freeDirSpace = findBlock();
+        
         strcpy(block.dir.entrylist[freeDirSpace].name, token);
         block.dir.entrylist[freeDirSpace].unused = 0;
 
@@ -279,21 +292,23 @@ void mymkdir(const char * path){
         writeblock(&block, blockNum);
 
         blockNum = freeFat;
+        
     }
 }
 
 char** mylistdir(const char*path){
-    diskblock_t block;
     char pathString[strlen(path)+1];
     strcpy(pathString, path);
     char * rest = pathString;
     char * token;
     char targName;
     int blockNum = 3;
-    int objective, foundDir;
+    int objective, foundDir = 0;
 
     while((token = strtok_r(rest, "/", &rest))){
+        diskblock_t block;
         block = virtualDisk[blockNum];
+        
         for(int i = 0; i<DIRENTRYCOUNT; i++){
             if(strcmp(block.dir.entrylist[i].name, token)== 0){
                 foundDir = 1;

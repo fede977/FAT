@@ -10,7 +10,6 @@ void D(){
 }
 
 void C(){
-    format();
     diskblock_t block;
     MyFILE * File = myfopen("testfile.txt", "w");
 
@@ -32,11 +31,13 @@ void C(){
 
     while(fileChar != EOF){
         fileChar = myfgetc(File);
-        if(fileChar!= EOF){
+        if (fileChar != EOF){
             fprintf(returningFile, "%c", fileChar);
             printf("%c", fileChar);
+            
         }
     }
+    fclose(returningFile);
 }
 
 void B(){
@@ -44,10 +45,12 @@ void B(){
 
     mymkdir(path);
     writedisk("virtualdiskB3_B1a");
+    
 
     path = "/myfirstdir/myseconddir/testfile.txt";
     mymkdir(path);
-
+    mylistdir("/myfirstdir/myseconddir/");
+    
     writedisk("virtualdiskB3_B1b");
 }
 

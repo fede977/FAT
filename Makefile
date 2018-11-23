@@ -1,7 +1,4 @@
-all: D
+.PHONY: shell
 
-D: a.out
-	gcc -o D a.out
-
-a.out: filesys.c shell.c filesys.h
-	gcc -c shell.c filesys.c filesys.h
+shell: filesys.c shell.c
+	gcc shell.c filesys.c -o shell
