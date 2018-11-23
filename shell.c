@@ -4,6 +4,7 @@
 #include "filesys.h"
 
 void D(){
+    printf("Running part D...\n");
 
 	format();
 	writedisk("virtualdiskD3_D1");
@@ -11,6 +12,7 @@ void D(){
 }
 
 void C(){
+    printf("Running part C...\n");
 	diskblock_t block;
 	MyFILE * File = myfopen("testfile.txt", "w");
 
@@ -45,6 +47,7 @@ void B(){
 	char * path = "/myfirstdir/myseconddir/mythirddir";
 
 	mymkdir(path);
+    
 	writedisk("virtualdiskB3_B1a");
 
 

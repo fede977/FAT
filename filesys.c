@@ -124,6 +124,7 @@ void format ( )
 
 	block.dir.isdir = 1;
 	block.dir.nextEntry = 0;
+        for (int i = 0; i < DIRENTRYCOUNT; i++) block.dir.entrylist[i].unused = 1;
 
 	writeblock(&block, fatblocksneeded+1);
 
@@ -151,15 +152,17 @@ int findBlock(diskblock_t block){
 			break;
 		}
 	}
+    return -1;
 }
 
-int findFile(char * fileName, diskblock_t block) {
-	for(int i = 0; i<DIRENTRYCOUNT; i++){
+int findFile(const char * fileName, diskblock_t block) {
+	for(int i = 0; i<block.dir.nextEntry; i++){
+        //printf("compare %s with %s\n", fileName, block.dir.entrylist[i].name);
 		if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
 			return block.dir.entrylist[i].firstblock;
 		}
 	}
-
+    return 0;
 }
 
 
@@ -171,25 +174,23 @@ diskblock_t findDir(const char * otherstr){
 
 	strcpy(str, otherstr);
 
-	printf("strtok_r %s", str);
+	//printf("strtok_r %s\n", str);
 	token = strtok_r(str, "/", &ctx);
-	printf("strtok_r %s", str);
+	//printf("strtok_r %s\n", str);
 
 	while(token){
-		printf("Token is: %s", token);
-		token = strtok_r(NULL, "/", &ctx);
-		continue;
+		//printf("Token is: %s\n", token);
 		diskblock_t block;
 		block = virtualDisk[blockNum];
-		block.dir.nextEntry = 0;
-		block.dir.isdir = 1;
+
 		int FoundFile = findFile(token, block);
 		if(!FoundFile){
-			printf("File not Found");
+			printf("File not Found\n");
 			break;
 		}
 		blockNum = block.dir.entrylist[FoundFile].firstblock;
 
+		token = strtok_r(NULL, "/", &ctx);
 	}
 	return virtualDisk[blockNum];
 }
@@ -210,6 +211,7 @@ MyFILE * myfopen(char * fileName, const char * mode){
 		File -> pos = 0;
 	}else{
 		int j = findBlock(block);
+        //printf("BLOCK NUMBER: %i", j);
 
 		filePos = allocFAT();
 
@@ -290,20 +292,31 @@ void myfclose(MyFILE * stream){
 
 
 void mymkdir(const char * path){
-	char pathString[strlen(path)+1];
+	char * pathString = malloc(strlen(path)+1);
 	strcpy(pathString, path);
-	char * str = pathString;
-	char  * token;
+
+	char * str = malloc(strlen(pathString)+1);
+    strcpy(str, pathString);
+
+	char * token = "", * ctx = "";
 	int blockNum = 3;
 
-	while((token = strtok_r(str, "/",&str))){
+    token = strtok_r(str, "/", &ctx);
+	while(token){
 		diskblock_t block;
 		block = virtualDisk[blockNum];
 		block.dir.nextEntry = 0;
+        for (int i = 0; i < DIRENTRYCOUNT; i++) block.dir.entrylist[i].unused = 1;
 		block.dir.isdir = 1;
 
 		int freeDirSpace = findBlock(block);
 
+        if (freeDirSpace == -1) {
+            printf("No Free Space\n");
+            break;
+        }
+
+        //printf("Creating directory %s", token);
 		strcpy(block.dir.entrylist[freeDirSpace].name, token);
 		block.dir.entrylist[freeDirSpace].unused = 0;
 
@@ -316,41 +329,24 @@ void mymkdir(const char * path){
 		writeblock(&block, blockNum);
 
 		blockNum = freeFat;
+
+		token = strtok_r(NULL, "/", &ctx);
 	}
 }
 
-char * mylistdir(const char*path){
+char ** mylistdir(const char*path){
+    diskblock_t block;
 	char pathString[strlen(path)+1];
 	strcpy(pathString, path);
 	char * rest = pathString;
-	char * token;
-	char * targName;
-	int blockNum = 3;
+    char ** fileList = malloc(block.dir.nextEntry+1*sizeof(char*));
 	int objective, foundDir = 0;
-
-	while((token = strtok_r(rest, "/", &rest))){
-		diskblock_t block;
-		block = virtualDisk[blockNum];
-
-		for(int i = 0; i<DIRENTRYCOUNT; i++){
-			if(strcmp(block.dir.entrylist[i].name, token)== 0){
-				foundDir = 1;
-				objective = i;
-				break;
-			}
-		}
-
-		if(foundDir){
-			targName = block.dir.entrylist[objective].name;
-			continue;
-		}else{
-			break;
-		}
-
-		blockNum = block.dir.entrylist[objective].firstblock;
-	}
-
-	return targName;
+    block = virtualDisk[3];
+    for(int i = 0; i<block.dir.nextEntry; i++){
+        fileList[i]=block.dir.entrylist[i].name;
+    }
+    fileList[block.dir.nextEntry] = NULL;
+	return fileList;
 }
 
 

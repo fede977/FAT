@@ -111,7 +111,7 @@ void mymkdir(const char * path);
 
 int myfgetc(MyFILE * stream);
 void myfclose(MyFILE * stream);
-char * mylistdir(const char * path);
+char ** mylistdir(const char * path);
 
 
 #endif
