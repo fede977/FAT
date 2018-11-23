@@ -25,7 +25,7 @@ void C(){
 
     writedisk("virtualdiskC3_C1");
 
-    char fileChar;
+    char fileChar = '\0';
     File = myfopen("testfile.txt", "w");
     FILE * returningFile = fopen("testfileC3_C1_copy.txt", "w");
 
@@ -47,8 +47,10 @@ void B(){
     writedisk("virtualdiskB3_B1a");
     
 
-    path = "/myfirstdir/myseconddir/testfile.txt";
+    path = "/myfirstdir/myseconddir";
     mymkdir(path);
+    MyFILE * File = myfopen("/myfirstdir/myseconddir/testfile.txt", "w");
+    myfclose(File);
     mylistdir("/myfirstdir/myseconddir/");
     
     writedisk("virtualdiskB3_B1b");

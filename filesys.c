@@ -144,9 +144,7 @@ int allocFAT(){
     }
 }
 
-int findBlock(){
-    diskblock_t block;
-
+int findBlock(diskblock_t block){
     for(int i = 0; i<DIRENTRYCOUNT; i++){
         if(block.dir.entrylist[i].unused){
             return i;
@@ -156,7 +154,6 @@ int findBlock(){
 }
 
 int findFile(char * fileName, diskblock_t block) {
-
     for(int i = 0; i<DIRENTRYCOUNT; i++){
         if(strcmp(block.dir.entrylist[i].name, fileName) == 0){
             return block.dir.entrylist[i].firstblock;
@@ -165,21 +162,40 @@ int findFile(char * fileName, diskblock_t block) {
 
 }
 
+
+diskblock_t findDir(char str[]){
+    int blockNum = 3;
+    char  * token;
+    while((token = strtok_r(str, "/",&str))){
+        diskblock_t block;
+        block = virtualDisk[blockNum];
+        block.dir.nextEntry = 0;
+        block.dir.isdir = 1;
+        int FoundFile = findFile(token, block);
+        if(!FoundFile){
+            printf("File not Found");
+        }
+        blockNum = block.dir.entrylist[FoundFile].firstblock;
+    }
+    return virtualDisk[blockNum];
+}
+
 MyFILE * myfopen(char * fileName, const char * mode){
     diskblock_t block;
 
-    block = virtualDisk[3];
+    block = findDir(fileName);
     MyFILE * File = malloc(sizeof(MyFILE));
     strcpy(File->mode,mode);
     int filePos;
-    int i = findBlock(), fileBlockId = findFile(fileName, block);
+   
+    int i = findBlock(block), fileBlockId = findFile(fileName, block);
    
 
     if(fileBlockId){
         File ->blockno = fileBlockId;
         File -> pos = 0;
     }else{
-        int j = findBlock();
+        int j = findBlock(block);
 
         filePos = allocFAT();
 
@@ -265,20 +281,14 @@ void mymkdir(const char * path){
     char * str = pathString;
     char  * token;
     int blockNum = 3;
-
-
+    
     while((token = strtok_r(str, "/",&str))){
         diskblock_t block;
         block = virtualDisk[blockNum];
         block.dir.nextEntry = 0;
         block.dir.isdir = 1;
-        if (blockNum > 3){
-            for(int i = 0; i < DIRENTRYCOUNT; i++){ 
-                block.dir.entrylist[i].unused = 1;
-            }
-        }
         
-        int freeDirSpace = findBlock();
+        int freeDirSpace = findBlock(block);
         
         strcpy(block.dir.entrylist[freeDirSpace].name, token);
         block.dir.entrylist[freeDirSpace].unused = 0;
@@ -292,7 +302,6 @@ void mymkdir(const char * path){
         writeblock(&block, blockNum);
 
         blockNum = freeFat;
-        
     }
 }
 
